@@ -1,0 +1,153 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Troque para 0x3F se o LCD não aparecer
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// PINOS
+const int PINO_BOTAO = 2;
+const int PINO_LED = 13;
+const int PINO_BUZZER = 8;
+
+// CONFIGURAÇÕES MORSE
+const unsigned long TEMPO_PONTO_TRACO = 300;   // menor que isso = ponto, maior = traço
+const unsigned long TEMPO_FIM_LETRA = 800;     // pausa para finalizar letra
+const unsigned long TEMPO_ESPACO = 1800;       // pausa para espaço entre palavras
+
+String codigoAtual = "";
+String frase = "";
+
+bool botaoPressionado = false;
+unsigned long tempoInicioPressionado = 0;
+unsigned long tempoSoltou = 0;
+
+void setup() {
+  pinMode(PINO_BOTAO, INPUT_PULLUP);
+  pinMode(PINO_LED, OUTPUT);
+  pinMode(PINO_BUZZER, OUTPUT);
+
+  lcd.init();
+  lcd.backlight();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Telegrafo Morse");
+  lcd.setCursor(0, 1);
+  lcd.print("Pronto...");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  bool estadoBotao = digitalRead(PINO_BOTAO) == LOW;
+
+  // Botão apertado
+  if (estadoBotao && !botaoPressionado) {
+    botaoPressionado = true;
+    tempoInicioPressionado = millis();
+
+    digitalWrite(PINO_LED, HIGH);
+    tone(PINO_BUZZER, 800);
+  }
+
+  // Botão solto
+  if (!estadoBotao && botaoPressionado) {
+    botaoPressionado = false;
+
+    unsigned long duracao = millis() - tempoInicioPressionado;
+
+    digitalWrite(PINO_LED, LOW);
+    noTone(PINO_BUZZER);
+
+    if (duracao < TEMPO_PONTO_TRACO) {
+      codigoAtual += ".";
+    } else {
+      codigoAtual += "-";
+    }
+
+    tempoSoltou = millis();
+    mostrarTela();
+  }
+
+  // Finaliza letra após pausa
+  if (!botaoPressionado && codigoAtual.length() > 0) {
+    unsigned long pausa = millis() - tempoSoltou;
+
+    if (pausa > TEMPO_FIM_LETRA) {
+      char letra = decodificarMorse(codigoAtual);
+      frase += letra;
+      codigoAtual = "";
+      mostrarTela();
+    }
+  }
+
+  // Espaço entre palavras
+  if (!botaoPressionado && codigoAtual.length() == 0 && frase.length() > 0) {
+    unsigned long pausa = millis() - tempoSoltou;
+
+    if (pausa > TEMPO_ESPACO) {
+      if (frase[frase.length() - 1] != ' ') {
+        frase += " ";
+        mostrarTela();
+      }
+      tempoSoltou = millis();
+    }
+  }
+}
+
+void mostrarTela() {
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Morse: ");
+  lcd.print(codigoAtual);
+
+  lcd.setCursor(0, 1);
+
+  if (frase.length() <= 16) {
+    lcd.print(frase);
+  } else {
+    lcd.print(frase.substring(frase.length() - 16));
+  }
+}
+
+char decodificarMorse(String m) {
+  if (m == ".-") return 'A';
+  if (m == "-...") return 'B';
+  if (m == "-.-.") return 'C';
+  if (m == "-..") return 'D';
+  if (m == ".") return 'E';
+  if (m == "..-.") return 'F';
+  if (m == "--.") return 'G';
+  if (m == "....") return 'H';
+  if (m == "..") return 'I';
+  if (m == ".---") return 'J';
+  if (m == "-.-") return 'K';
+  if (m == ".-..") return 'L';
+  if (m == "--") return 'M';
+  if (m == "-.") return 'N';
+  if (m == "---") return 'O';
+  if (m == ".--.") return 'P';
+  if (m == "--.-") return 'Q';
+  if (m == ".-.") return 'R';
+  if (m == "...") return 'S';
+  if (m == "-") return 'T';
+  if (m == "..-") return 'U';
+  if (m == "...-") return 'V';
+  if (m == ".--") return 'W';
+  if (m == "-..-") return 'X';
+  if (m == "-.--") return 'Y';
+  if (m == "--..") return 'Z';
+
+  if (m == "-----") return '0';
+  if (m == ".----") return '1';
+  if (m == "..---") return '2';
+  if (m == "...--") return '3';
+  if (m == "....-") return '4';
+  if (m == ".....") return '5';
+  if (m == "-....") return '6';
+  if (m == "--...") return '7';
+  if (m == "---..") return '8';
+  if (m == "----.") return '9';
+
+  return '?';
+}

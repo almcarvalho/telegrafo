@@ -1,9 +1,6 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-//COFRE FECHADO COM UMA FECHADURA QUE ABRE SE ACERTAR UMA PALAVRA DIGITADA USANDO
-//CODIGO MORSE FEITO POR LUCAS CARVALHO EM 03/07/2026
-
 // Troque para 0x3F se o LCD não aparecer
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
